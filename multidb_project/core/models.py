@@ -1,9 +1,9 @@
-
 from django.db import models
 
 class Client(models.Model):
     """
-    Tabla en PostgreSQL (default): clients
+    Modelo persistido en PostgreSQL (alias: default)
+    Tabla física: clients
     """
     name = models.CharField(max_length=150)
     email = models.EmailField(unique=True)
@@ -21,10 +21,12 @@ class Client(models.Model):
 
 class Contract(models.Model):
     """
-    Tabla en MySQL (mysql): contracts
+    Modelo persistido en MySQL (alias: mysql)
+    Tabla física: contracts
 
-    Nota: no se define FK real a Client porque está en otra BD.
-    Se mantiene integridad a nivel aplicación vía client_id.
+    Integridad entre DBs:
+    - NO se define ForeignKey a Client (porque está en otra DB).
+    - Se usa client_id y se resuelve la relación en consultas manuales / servicio.
     """
     client_id = models.BigIntegerField(db_index=True)
     title = models.CharField(max_length=200)

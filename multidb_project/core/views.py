@@ -11,18 +11,10 @@ def clients_view(request):
 
 
 def client_stats_view(request):
-    data = list(
-        clients_with_contract_count().values(
-            "id", "name", "total_contracts"
-        )
-    )
-    return JsonResponse(data, safe=False)
+    # ahora clients_with_contract_count() ya retorna lista de dicts
+    return JsonResponse(clients_with_contract_count(), safe=False)
 
 
 def client_amounts_view(request):
-    data = list(
-        total_amount_by_client().values(
-            "id", "name", "total_amount"
-        )
-    )
-    return JsonResponse(data, safe=False)
+    # ahora total_amount_by_client() ya retorna lista de dicts
+    return JsonResponse(total_amount_by_client(), safe=False)
