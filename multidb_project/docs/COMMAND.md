@@ -36,8 +36,14 @@ python manage.py makemigrations core
 python manage.py migrate --database=default
 ```
 
+# Duplicado base de django en db Usando db_router_old.py
 ```bash
 python manage.py migrate --database=mysql
+```
+
+# Sin duplicado de db django Usando db_router.py
+```bash
+python manage.py migrate core --database=mysql
 ```
 
 ```bash

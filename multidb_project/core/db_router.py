@@ -1,44 +1,48 @@
 class CoreDatabaseRouter:
     """
-    Router multi-DB para la app core.
-
-    Reglas:
-    - Client   -> PostgreSQL (alias: default)
-    - Contract -> MySQL      (alias: mysql)
-
-    Django invoca estos métodos para:
-    - seleccionar DB en lecturas/escrituras
-    - decidir si se permite una relación entre objetos
-    - decidir en qué DB migrar cada modelo
+    - Tablas de Django (auth/admin/sessions/etc) -> SOLO Postgres (default)
+    - core.Client   -> Postgres (default)
+    - core.Contract -> MySQL (mysql)
     """
 
     postgres_models = {"client"}
     mysql_models = {"contract"}
 
+    django_apps = {
+        "admin",
+        "auth",
+        "contenttypes",
+        "sessions",
+        "messages",
+        "staticfiles",
+    }
+
     def db_for_read(self, model, **hints):
-        """
-        Selecciona la base de datos para operaciones de lectura (SELECT).
-        """
-        if model._meta.model_name in self.postgres_models:
+        # Si quieres, puedes también rutear por app_label, pero tu enfoque por model_name está ok.
+        if model._meta.app_label in self.django_apps:
             return "default"
-        if model._meta.model_name in self.mysql_models:
-            return "mysql"
+
+        if model._meta.app_label == "core":
+            if model._meta.model_name in self.postgres_models:
+                return "default"
+            if model._meta.model_name in self.mysql_models:
+                return "mysql"
+
         return None
 
     def db_for_write(self, model, **hints):
-        """
-        Selecciona la base de datos para operaciones de escritura (INSERT/UPDATE/DELETE).
-        """
-        if model._meta.model_name in self.postgres_models:
+        if model._meta.app_label in self.django_apps:
             return "default"
-        if model._meta.model_name in self.mysql_models:
-            return "mysql"
+
+        if model._meta.app_label == "core":
+            if model._meta.model_name in self.postgres_models:
+                return "default"
+            if model._meta.model_name in self.mysql_models:
+                return "mysql"
+
         return None
 
     def allow_relation(self, obj1, obj2, **hints):
-        """
-        Bloquea relaciones ORM (FK/M2M) entre objetos que residan en DBs distintas.
-        """
         db1 = self.db_for_read(obj1.__class__)
         db2 = self.db_for_read(obj2.__class__)
         if db1 and db2 and db1 != db2:
@@ -46,16 +50,18 @@ class CoreDatabaseRouter:
         return None
 
     def allow_migrate(self, db, app_label, model_name=None, **hints):
-        """
-        Controla en qué base se ejecutan migraciones por modelo.
-        """
-        if app_label != "core":
-            return None
-
-        if model_name in self.postgres_models:
+        # 1) Apps internas Django: SOLO Postgres
+        if app_label in self.django_apps:
             return db == "default"
 
-        if model_name in self.mysql_models:
-            return db == "mysql"
+        # 2) App core: separar por modelo
+        if app_label == "core":
+            if model_name in self.postgres_models:
+                return db == "default"
+            if model_name in self.mysql_models:
+                return db == "mysql"
+            # si agregas más modelos a core, decide aquí (por defecto Postgres o bloquear)
+            return db == "default"
 
-        return None
+        # 3) Otras apps (si existen): por defecto a Postgres
+        return db == "default"
