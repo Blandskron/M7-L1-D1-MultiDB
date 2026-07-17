@@ -1,12 +1,11 @@
 class CoreDatabaseRouter:
     """
-    - Tablas de Django (auth/admin/sessions/etc) -> SOLO Postgres (default)
-    - core.Client   -> Postgres (default)
-    - core.Contract -> MySQL (mysql)
+    - Tablas internas y Client -> base principal (default)
+    - Contract -> segunda base (contracts)
     """
 
-    postgres_models = {"client"}
-    mysql_models = {"contract"}
+    primary_models = {"client"}
+    contract_models = {"contract"}
 
     django_apps = {
         "admin",
@@ -23,10 +22,10 @@ class CoreDatabaseRouter:
             return "default"
 
         if model._meta.app_label == "core":
-            if model._meta.model_name in self.postgres_models:
+            if model._meta.model_name in self.primary_models:
                 return "default"
-            if model._meta.model_name in self.mysql_models:
-                return "mysql"
+            if model._meta.model_name in self.contract_models:
+                return "contracts"
 
         return None
 
@@ -35,10 +34,10 @@ class CoreDatabaseRouter:
             return "default"
 
         if model._meta.app_label == "core":
-            if model._meta.model_name in self.postgres_models:
+            if model._meta.model_name in self.primary_models:
                 return "default"
-            if model._meta.model_name in self.mysql_models:
-                return "mysql"
+            if model._meta.model_name in self.contract_models:
+                return "contracts"
 
         return None
 
@@ -56,10 +55,10 @@ class CoreDatabaseRouter:
 
         # 2) App core: separar por modelo
         if app_label == "core":
-            if model_name in self.postgres_models:
+            if model_name in self.primary_models:
                 return db == "default"
-            if model_name in self.mysql_models:
-                return db == "mysql"
+            if model_name in self.contract_models:
+                return db == "contracts"
             # si agregas más modelos a core, decide aquí (por defecto Postgres o bloquear)
             return db == "default"
 

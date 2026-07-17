@@ -1,0 +1,14 @@
+services:
+  web:
+    build: .
+    ports:
+      - "8000:8000"
+    volumes:
+      - django_data:/app/data
+    environment:
+      DJANGO_ALLOWED_HOSTS: "localhost,127.0.0.1,0.0.0.0"
+      DATABASE_DIR: "/app/data"
+    restart: unless-stopped
+
+volumes:
+  django_data:

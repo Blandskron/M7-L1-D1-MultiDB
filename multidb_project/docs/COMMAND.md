@@ -1,59 +1,26 @@
-# command.md
+# Comandos de evaluación
+
+Desde la raíz del repositorio:
 
 ```bash
-python -m venv venv
+docker compose config
+docker compose build
+docker compose up
 ```
 
-```bash
-venv\Scripts\activate
-```
+El `entrypoint.sh` ejecuta automáticamente:
 
 ```bash
-python -m pip install --upgrade pip
+python manage.py migrate --database=default --noinput
+python manage.py migrate --database=contracts --noinput
+python manage.py collectstatic --noinput
+python manage.py seed_demo
+python manage.py runserver 0.0.0.0:8000
 ```
 
-```bash
-pip install django psycopg2-binary mysqlclient
-```
+Para ejecutar pruebas dentro de la imagen:
 
 ```bash
-django-admin startproject multidb_project
-```
-
-```bash
-cd multidb_project
-```
-
-```bash
-python manage.py startapp core
-```
-
-```bash
-python manage.py makemigrations core
-```
-
-```bash
-python manage.py migrate --database=default
-```
-
-# Duplicado base de django en db Usando db_router_old.py
-```bash
-python manage.py migrate --database=mysql
-```
-
-# Sin duplicado de db django Usando db_router.py
-```bash
-python manage.py migrate core --database=mysql
-```
-
-```bash
-python manage.py createsuperuser --database=default
-```
-
-```bash
-python manage.py runserver
-```
-
-```bash
-pip freeze > requirements.txt
+docker compose run --rm --no-deps --entrypoint python web manage.py check
+docker compose run --rm --no-deps --entrypoint python web manage.py test
 ```

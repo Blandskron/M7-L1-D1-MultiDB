@@ -3,7 +3,7 @@ from django.db import connections
 from .models import Client, Contract
 
 # -----------------------------------------------------------------------------
-# ORM (PostgreSQL): SELECT * FROM clients WHERE is_active = true;
+# ORM en la base principal: SELECT * FROM clients WHERE is_active = true;
 # -----------------------------------------------------------------------------
 def active_clients():
     return Client.objects.using("default").filter(is_active=True)
@@ -12,15 +12,15 @@ def active_clients():
 # Multi-DB: no existe relación ORM entre Client y Contract.
 # Por lo tanto NO se puede usar annotate(Count("contracts")) porque no hay related_name.
 # Se resuelve con:
-# - query en MySQL para agrupar por client_id
-# - merge en memoria con clients desde PostgreSQL
+# - consulta en la base contracts para agrupar por client_id
+# - combinación en memoria con clientes desde default
 # -----------------------------------------------------------------------------
 def client_contract_counts():
     """
-    Retorna dict: {client_id: total_contracts} desde MySQL.
+    Retorna {client_id: total_contracts} desde la segunda base.
     """
     qs = (
-        Contract.objects.using("mysql")
+        Contract.objects.using("contracts")
         .values("client_id")
         .annotate(total_contracts=Count("id"))
     )
@@ -29,10 +29,10 @@ def client_contract_counts():
 
 def client_amount_totals():
     """
-    Retorna dict: {client_id: total_amount} desde MySQL.
+    Retorna {client_id: total_amount} desde la segunda base.
     """
     qs = (
-        Contract.objects.using("mysql")
+        Contract.objects.using("contracts")
         .values("client_id")
         .annotate(total_amount=Sum("amount"))
     )
@@ -42,8 +42,8 @@ def client_amount_totals():
 def clients_with_contract_count():
     """
     Retorna lista de dicts combinando:
-    - Clients desde PostgreSQL
-    - Conteos desde MySQL
+    - clientes desde default
+    - conteos desde contracts
     """
     counts = client_contract_counts()
     clients = Client.objects.using("default").all().values("id", "name")
@@ -56,8 +56,8 @@ def clients_with_contract_count():
 def total_amount_by_client():
     """
     Retorna lista de dicts combinando:
-    - Clients desde PostgreSQL
-    - Sumas desde MySQL
+    - clientes desde default
+    - sumas desde contracts
     """
     totals = client_amount_totals()
     clients = Client.objects.using("default").all().values("id", "name")
@@ -69,20 +69,20 @@ def total_amount_by_client():
 # -----------------------------------------------------------------------------
 # SQL crudo (RAW SQL) - EJEMPLO SEPARADO POR DB (NO JOIN CROSS-DB)
 # -----------------------------------------------------------------------------
-def raw_sql_clients_postgres():
+def raw_sql_clients():
     """
-    SQL crudo en PostgreSQL: lista de clients.
+    SQL crudo en default: lista de clientes.
     """
     with connections["default"].cursor() as cursor:
         cursor.execute("SELECT id, name, email, country, is_active, created_at FROM clients;")
         return cursor.fetchall()
 
 
-def raw_sql_contracts_mysql():
+def raw_sql_contracts():
     """
-    SQL crudo en MySQL: conteo por client_id.
+    SQL crudo en contracts: conteo por client_id.
     """
-    with connections["mysql"].cursor() as cursor:
+    with connections["contracts"].cursor() as cursor:
         cursor.execute("""
             SELECT client_id, COUNT(id) AS total_contracts
             FROM contracts

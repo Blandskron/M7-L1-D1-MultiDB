@@ -1,0 +1,13 @@
+{% load static %}
+<!doctype html>
+<html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Laboratorio Django Multi-DB</title><link rel="stylesheet" href="{% static 'core/style.css' %}"></head>
+<body><header><h1>Laboratorio Django ORM y Multi-DB</h1><p>Clientes y autenticación viven en <code>default</code>; contratos en <code>contracts</code>.</p><a href="/admin/">Panel de administración</a></header>
+<main>{% for message in messages %}<p class="message">{{ message }}</p>{% endfor %}
+<section><h2>Demostración educativa</h2><ul><li>Modelos Python convertidos en tablas mediante migraciones.</li><li>Router que decide la base para cada lectura, escritura y migración.</li><li>Consultas ORM con <code>filter</code>, <code>values</code>, <code>annotate</code>, <code>Count</code> y <code>Sum</code>.</li><li>SQL crudo parametrizable disponible en <code>core/queries.py</code>.</li><li>La unión entre bases se realiza en Python porque no existen JOIN entre conexiones.</li></ul>
+<p>API: <a href="/api/clients/">clientes</a> · <a href="/api/clients/stats/">conteos</a> · <a href="/api/clients/amounts/">montos</a></p></section>
+<div class="grid"><section><h2>Nuevo cliente</h2><form method="post" action="{% url 'create_client' %}">{% csrf_token %}{{ client_form.as_p }}<button>Guardar cliente</button></form></section>
+<section><h2>Nuevo contrato</h2><form method="post" action="{% url 'create_contract' %}">{% csrf_token %}{{ contract_form.as_p }}<button>Guardar contrato</button></form></section></div>
+<div class="grid"><section><h2>Clientes (default)</h2><table><tr><th>ID</th><th>Nombre</th><th>Email</th></tr>{% for client in clients %}<tr><td>{{ client.id }}</td><td>{{ client.name }}</td><td>{{ client.email }}</td></tr>{% empty %}<tr><td colspan="3">Sin datos</td></tr>{% endfor %}</table></section>
+<section><h2>Contratos (contracts)</h2><table><tr><th>Cliente</th><th>Título</th><th>Monto</th></tr>{% for contract in contracts %}<tr><td>{{ contract.client_id }}</td><td>{{ contract.title }}</td><td>${{ contract.amount }}</td></tr>{% empty %}<tr><td colspan="3">Sin datos</td></tr>{% endfor %}</table></section></div>
+</main></body></html>

@@ -2,7 +2,7 @@ from django.db import models
 
 class Client(models.Model):
     """
-    Modelo persistido en PostgreSQL (alias: default)
+    Modelo persistido en la base principal (alias: default).
     Tabla física: clients
     """
     name = models.CharField(max_length=150)
@@ -21,7 +21,7 @@ class Client(models.Model):
 
 class Contract(models.Model):
     """
-    Modelo persistido en MySQL (alias: mysql)
+    Modelo persistido en la segunda base (alias: contracts).
     Tabla física: contracts
 
     Integridad entre DBs:
@@ -40,3 +40,11 @@ class Contract(models.Model):
 
     def __str__(self):
         return f"{self.title} (client_id={self.client_id})"
+
+    def clean(self):
+        from django.core.exceptions import ValidationError
+
+        if self.amount is not None and self.amount <= 0:
+            raise ValidationError({"amount": "El monto debe ser mayor que cero."})
+        if self.client_id and not Client.objects.using("default").filter(pk=self.client_id).exists():
+            raise ValidationError({"client_id": "El cliente indicado no existe."})

@@ -1,8 +1,12 @@
 from django.urls import path
-from .views import clients_view, client_stats_view, client_amounts_view
+
+from . import views
 
 urlpatterns = [
-    path("clients/", clients_view),
-    path("clients/stats/", client_stats_view),
-    path("clients/amounts/", client_amounts_view),
+    path("", views.dashboard, name="dashboard"),
+    path("clients/new/", views.create_client, name="create_client"),
+    path("contracts/new/", views.create_contract, name="create_contract"),
+    path("clients/", views.clients_view, name="api_clients"),
+    path("clients/stats/", views.client_stats_view, name="api_client_stats"),
+    path("clients/amounts/", views.client_amounts_view, name="api_client_amounts"),
 ]

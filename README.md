@@ -1,156 +1,72 @@
-# Sistema de Gestión de Clientes y Contratos Multi-Base de Datos (Django)
+# Laboratorio educativo Django ORM y múltiples bases de datos
 
-## 📌 Descripción general
+Aplicación sencilla para aprender cómo Django integra modelos Python con bases de datos. Separa `Client` y `Contract` en dos bases SQLite mediante un `DatabaseRouter`, expone una interfaz web, administración y API, e incluye consultas ORM y SQL crudo.
 
-Este proyecto es una aplicación desarrollada con **Django** que demuestra de forma práctica y estructurada la **integración del framework con múltiples motores de bases de datos relacionales**, utilizando el **ORM de Django**, migraciones controladas y consultas avanzadas.
+## Ejecución completa con Docker
 
-El sistema permite administrar **clientes** y **contratos**, almacenando cada entidad en una **base de datos distinta**, resolviendo uno de los escenarios más complejos y reales del acceso a datos empresarial: **arquitecturas Multi-DB**.
-
----
-
-## 🎯 Objetivos del proyecto
-
-* Comprender cómo Django se integra con bases de datos relacionales
-* Aplicar el ORM de Django para definir modelos, consultas y agregaciones
-* Configurar y utilizar **múltiples bases de datos simultáneamente**
-* Controlar migraciones por base de datos usando **Database Routers**
-* Comparar consultas ORM con SQL crudo
-* Implementar una API simple que exponga datos combinados desde distintas DB
-
----
-
-## 🧱 Arquitectura general
-
-### Bases de datos utilizadas
-
-| Base de datos | Motor      | Alias Django | Modelo almacenado |
-| ------------- | ---------- | ------------ | ----------------- |
-| Clientes      | PostgreSQL | `default`    | `Client`          |
-| Contratos     | MySQL      | `mysql`      | `Contract`        |
-
-Cada base de datos es **independiente**, no existe una ForeignKey real entre tablas, lo que obliga a resolver la relación a nivel de aplicación, como ocurre en sistemas distribuidos reales.
-
----
-
-## 🗂️ Estructura del proyecto
-
-```
-multidb_project/
-├── multidb_project/
-│   ├── settings.py
-│   ├── urls.py
-│   └── wsgi.py
-│
-├── core/
-│   ├── admin.py
-│   ├── models.py
-│   ├── db_router.py
-│   ├── queries.py
-│   ├── views.py
-│   └── urls.py
-│
-├── code.md
-├── command.md
-└── requirements.txt
+```bash
+docker compose up --build
 ```
 
----
+Abra <http://localhost:8000/>. El panel está en <http://localhost:8000/admin/> con usuario `admin` y contraseña `admin1234`. El contenedor ejecuta las migraciones de ambas bases, recopila estáticos y crea de forma idempotente el usuario y los datos de demostración.
 
-## 🧠 Modelado de datos
+## Qué demuestra
 
-### Client (PostgreSQL)
+- **Integración Django/BD:** un modelo declara campos, tipos, restricciones y orden; las migraciones versionan el esquema; el ORM traduce expresiones Python a SQL.
+- **Multi-DB:** `core/db_router.py` dirige `Client`, autenticación y administración a `default`, y `Contract` a `contracts`. No se utiliza una `ForeignKey` entre conexiones: la asociación se representa con `client_id` y se combina en Python.
+- **Consultas ORM:** `filter()`, `values()`, `annotate()`, `Count()` y `Sum()` están en `core/queries.py`. `.using(alias)` hace explícita la conexión.
+- **SQL en Django:** el mismo archivo muestra consultas con `connections[alias].cursor()`. Los valores externos siempre deben enviarse como parámetros, nunca concatenarse.
+- **Migraciones:** `core/migrations/0001_initial.py` define el esquema; el router decide qué modelo se crea en cada conexión.
+- **Validación:** formularios `ModelForm`, unicidad del email, monto positivo y existencia del cliente.
+- **Interfaces:** página principal, formularios, panel admin y endpoints `/api/clients/`, `/api/clients/stats/` y `/api/clients/amounts/`.
 
-* Identifica a los clientes del sistema
-* Almacenado exclusivamente en PostgreSQL
-* Campos principales:
+## Motores soportados y paquetes
 
-  * nombre
-  * email (único)
-  * país
-  * estado activo
-  * fecha de creación
+Django incluye backends oficiales para los motores relacionales solicitados. SQLite usa la biblioteca estándar de Python y no requiere driver adicional.
 
-### Contract (MySQL)
+| Motor | `ENGINE` | Driver habitual |
+|---|---|---|
+| SQLite | `django.db.backends.sqlite3` | incluido en Python |
+| PostgreSQL | `django.db.backends.postgresql` | `psycopg` |
+| MySQL | `django.db.backends.mysql` | `mysqlclient` |
+| Oracle | `django.db.backends.oracle` | `oracledb` |
 
-* Representa contratos asociados a clientes
-* Almacenado exclusivamente en MySQL
-* Relación con cliente mediante `client_id` (sin FK real)
-* Campos principales:
+Los drivers alternativos se instalan solo si se cambia el motor, por ejemplo `pip install psycopg[binary]`, `pip install mysqlclient` o `pip install oracledb`. Este proyecto usa SQLite por defecto para que el evaluador no necesite servicios o instalaciones adicionales.
 
-  * client_id
-  * título
-  * monto
-  * fecha de firma
-  * estado activo
+### Bases NoSQL
 
----
+El ORM oficial está diseñado para bases relacionales. MongoDB y otros motores NoSQL requieren un backend o cliente de terceros, cuyas compatibilidad, migraciones y limitaciones deben evaluarse por separado. No se añadió uno porque no es necesario para este ejercicio y ocultaría los conceptos esenciales.
 
-## 🔀 Enrutamiento Multi-DB
+## Ejecución local opcional
 
-El proyecto utiliza un **Database Router personalizado** (`CoreDatabaseRouter`) que define:
+Requiere Python 3.12 o superior:
 
-* En qué base se leen los modelos
-* En qué base se escriben
-* En qué base se ejecutan las migraciones
-* Bloqueo de relaciones ORM entre DBs distintas
+```bash
+cd multidb_project
+python -m venv .venv
+python -m pip install -r requirements.txt
+python manage.py migrate
+python manage.py migrate --database=contracts
+python manage.py seed_demo
+python manage.py runserver
+```
 
-Esto permite que Django:
+Pruebas:
 
-* Migre `Client` solo en PostgreSQL
-* Migre `Contract` solo en MySQL
-* Use el ORM sin ambigüedades
+```bash
+python manage.py check
+python manage.py makemigrations --check --dry-run
+python manage.py test
+```
 
----
+## Estructura relevante
 
-## 🔍 Acceso a datos y consultas
+- `models.py`: mapeo objeto-relacional y validación.
+- `db_router.py`: lectura, escritura, relaciones y migraciones multi-DB.
+- `queries.py`: consultas ORM, agregaciones, combinación y SQL crudo.
+- `forms.py`, `views.py`, `urls.py`: ingreso validado y presentación.
+- `admin.py`: gestión de ambos modelos.
+- `management/commands/seed_demo.py`: catálogo inicial idempotente.
+- `tests.py`: pruebas básicas sobre ambas conexiones.
 
-### ORM (por base de datos)
-
-* Filtros simples (`filter`)
-* Agregaciones (`Count`, `Sum`)
-* Consultas agrupadas (`annotate`)
-* Uso explícito de `.using("default")` y `.using("mysql")`
-
-### Combinación de datos Multi-DB
-
-Dado que Django **no permite JOINs entre bases distintas**, el proyecto implementa:
-
-1. Consultas agregadas en MySQL (`Contract`)
-2. Consultas base en PostgreSQL (`Client`)
-3. Unión de resultados en memoria (Python)
-
-Este enfoque es **correcto, seguro y realista** para arquitecturas empresariales.
-
----
-
-## 🌐 API expuesta
-
-La aplicación expone endpoints REST simples usando vistas funcionales:
-
-| Endpoint                | Descripción                        |
-| ----------------------- | ---------------------------------- |
-| `/api/clients/`         | Lista de clientes activos          |
-| `/api/clients/stats/`   | Total de contratos por cliente     |
-| `/api/clients/amounts/` | Monto total contratado por cliente |
-
-Las respuestas combinan información proveniente de **PostgreSQL y MySQL**.
-
----
-
-## 🛠️ Paquetes utilizados
-
-* `Django`
-* `psycopg2-binary` (driver PostgreSQL)
-* `mysqlclient` (driver MySQL)
-
-Todos los paquetes están declarados en `requirements.txt`.
-
----
-
-## 📄 Documentación incluida
-
-* **`code.md`**
-  Contiene **todo el código fuente relevante**, limpio y listo para copiar/pegar, sin comandos.
-
-* **`command.md`**
-  Contiene **todos los comandos ejecutados** durante la creación y despliegue del proyecto.
+Las bases se guardan en el volumen Docker `django_data`, por lo que reiniciar el contenedor no duplica datos ni pierde el estado.

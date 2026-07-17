@@ -4,7 +4,7 @@ from .models import Client, Contract
 @admin.register(Client)
 class ClientAdmin(admin.ModelAdmin):
     """
-    Admin para Client (PostgreSQL).
+    Admin para Client (base default).
     """
     list_display = ("id", "name", "email", "country", "is_active", "created_at")
     search_fields = ("name", "email")
@@ -14,7 +14,7 @@ class ClientAdmin(admin.ModelAdmin):
 @admin.register(Contract)
 class ContractAdmin(admin.ModelAdmin):
     """
-    Admin para Contract (MySQL).
+    Admin para Contract (base contracts).
 
     Importante:
     - No existe ForeignKey real a Client, porque Client vive en otra base de datos.
